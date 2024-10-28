@@ -1,17 +1,65 @@
 package org.os_assignment;
+import java.io.File;
+import java.util.Scanner;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
     public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
+        // Initializing scanner for user input and creating instance of CLI
+        Scanner scanner = new Scanner(System.in);
+        CLI cli = new CLI();
+
+        // Accessing user's home directory as usually done in cmds
+        String currentDir = System.getProperty("user.home");
+        File userDir = new File(currentDir);
+
+        while(true){
+            System.out.print(currentDir + '>');
+
+            // Splitting command into substrings (command and any arguments) and storing them in array
+            String[] command = scanner.nextLine().split("\\s+");
+
+            switch(command[0]){
+
+                // help command - displays brief description for each command implemneted
+                case "help":
+                    CLI.displayHelp();
+                    break;
+
+                // exit command - exits from terminal using built-in function
+                case "exit":
+                    System.out.println("Exiting CLI..");
+                    System.exit(0);
+                    break;
+
+                // pwd - calls pwd function
+                case "pwd":
+                    CLI.printWorkingDirectory(currentDir);
+                    break;
+
+                // cd - calls cd function and displays output depending on return from function
+                case "cd":
+                    String parentDir = CLI.changeCurrentDirectory(command[1], userDir);
+
+                    if(parentDir == "Invalid directory"){
+                        System.out.println("Invalid directory");
+                    }else if(parentDir!=""){
+                        // if a non-empty string was returned, then update currentDir to string returned
+                        currentDir = parentDir;
+                        userDir = new File(currentDir);
+                    };
+
+                    break;
+
+                // default for any invalid command
+                default:
+                    System.out.println(String.join(" ",command) + " is not recognized as an internal or external command,\n" +
+                            "operable program or batch file.");
+                    break;
+            }
         }
+
     }
 }
