@@ -29,8 +29,8 @@ public class CLI {
                     return "";
                 }
 //            case ".":
-//            case "\\":
-            // argument is a path
+            case "\\":
+                return currentPath.toPath().getRoot().toString();
             default:
                 File newDir;
                 if (new File(arg).isAbsolute()) {

@@ -2,8 +2,6 @@ package org.os_assignment;
 import java.io.File;
 import java.util.Scanner;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
     public static void main(String[] args) {
 
@@ -20,6 +18,8 @@ public class Main {
 
             // Splitting command into substrings (command and any arguments) and storing them in array
             String[] command = scanner.nextLine().split("\\s+");
+
+            //command = [ls,-a]
 
             switch(command[0]){
 
@@ -41,15 +41,17 @@ public class Main {
 
                 // cd - calls cd function and displays output depending on return from function
                 case "cd":
-                    String parentDir = CLI.changeCurrentDirectory(command[1], userDir);
+                    if(command.length>1){
+                        String parentDir = CLI.changeCurrentDirectory(command[1], userDir);
 
-                    if(parentDir == "Invalid directory"){
-                        System.out.println("Invalid directory");
-                    }else if(parentDir!=""){
-                        // if a non-empty string was returned, then update currentDir to string returned
-                        currentDir = parentDir;
-                        userDir = new File(currentDir);
-                    };
+                        if(parentDir == "Invalid directory"){
+                            System.out.println("Invalid directory");
+                        }else if(parentDir!=""){
+                            // if a non-empty string was returned, then update currentDir to string returned
+                            currentDir = parentDir;
+                            userDir = new File(currentDir);
+                        };
+                    }
 
                     break;
 
