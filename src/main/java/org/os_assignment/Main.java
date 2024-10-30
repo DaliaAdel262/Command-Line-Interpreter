@@ -9,11 +9,13 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         CLI cli = new CLI();
 
+
         // Accessing user's home directory as usually done in cmds
         String currentDir = System.getProperty("user.home");
         File userDir = new File(currentDir);
 
         while(true){
+
             System.out.print(currentDir + '>');
 
             // Splitting command into substrings (command and any arguments) and storing them in array
@@ -55,7 +57,40 @@ public class Main {
 
                     break;
 
-                // default for any invalid command
+            case "touch":
+                    if (command.length > 1) {
+                        CLI.touch(command[1], userDir);
+                    } else {
+                        System.out.println("touch: Missing file name");
+                    }
+                    break;
+
+                case "mv":
+                    if (command.length == 3) {
+                        // Call the mv function with the current directory, source, and destination paths
+                        CLI.mv(currentDir, command[1], command[2]);
+                    } else {
+                        System.out.println("Invalid usage. Correct usage: mv <source> <destination>");
+                    }
+                    break;
+
+                case "rm":
+                    if (command.length == 2) {
+                        CLI.rm(currentDir, command[1]);
+                    } else {
+                        System.out.println("Invalid usage. Correct usage: rm <file|directory>");
+                    }
+                    break;
+
+                case "cat":
+                    if (command.length == 2) {
+                        CLI.cat(currentDir, command[1]);
+                    } else {
+                        System.out.println("Invalid usage. Usage: cat <file>");
+                    }
+                    break;
+
+                    // default for any invalid command
                 default:
                     System.out.println(String.join(" ",command) + " is not recognized as an internal or external command,\n" +
                             "operable program or batch file.");

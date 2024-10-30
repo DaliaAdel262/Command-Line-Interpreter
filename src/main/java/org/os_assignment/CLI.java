@@ -1,14 +1,20 @@
 package org.os_assignment;
+
+
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 public class CLI {
+
 
     // pwd - printing working directory(current directory)
     public static void printWorkingDirectory(String currentDir){
 
         // print current directory using currentDir param passed from main
         System.out.println(currentDir);
-
     }
 
     //cd - change directory
@@ -51,29 +57,130 @@ public class CLI {
         }
     }
 
-    //ls - list files in directory
 
-    //ls -a
+    //touch-> creates new file or changes the timestamp
+    public static void touch(String filename, File currentDir) {
+        File file = new File(currentDir, filename);  // Resolve file in current directory
 
-    //ls -r
+        try {
+            if (file.exists()) {
+                // If the file exists, update the last modified timestamp
+                boolean success = file.setLastModified(System.currentTimeMillis());
+                if (success) {
+                    System.out.println("Timestamp updated for: " + filename);
+                } else {
+                    System.out.println("Failed to update timestamp for: " + filename);
+                }
+            } else {
+                // Create a new file if it doesn't exist
+                boolean success = file.createNewFile();
+                if (success) {
+                    System.out.println("File created: " + filename);
+                } else {
+                    System.out.println("Failed to create file: " + filename);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
 
-    //mkdir
 
-    //rmdir
+    //mv-> move or rename files
+    public static void mv(String currentDir, String sourcePath, String destinationPath) {
+        // Resolve source and destination paths relative to the current directory
+        Path source = Paths.get(currentDir).resolve(sourcePath).normalize();
+        Path destination = Paths.get(currentDir).resolve(destinationPath).normalize();
 
-    //touch
+        // Check if the source file/directory exists
+        if (!Files.exists(source)) {
+            System.out.println("mv: cannot stat '" + source + "': No such file or directory");
+            return;
+        }
 
-    //mv
+        try {
+            // Perform the move/rename operation
+            Files.move(source, destination, StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("Moved '" + source + "' to '" + destination + "'");
+        } catch (IOException e) {
+            System.out.println("mv: failed to move '" + source + "' to '" + destination + "': " + e.getMessage());
+        }
+    }
 
-    //rm
 
-    //cat
+    //rm-> remove file or directory
+    public static void rm(String currentDir, String targetPath) {
+        // Resolve the target path relative to the current directory
+        Path target = Paths.get(currentDir).resolve(targetPath).normalize();
+
+        // Check if the target exists
+        if (!Files.exists(target)) {
+            System.out.println("rm: cannot remove '" + targetPath + "': No such file or directory");
+            return;
+        }
+
+        try {
+            // Check if it's a directory and delete it recursively if necessary
+            if (Files.isDirectory(target)) {
+                deleteDirectoryRecursively(target.toFile());
+            } else {
+                Files.delete(target); // For regular files
+                System.out.println("Removed: " + target);
+            }
+        } catch (IOException e) {
+            System.out.println("rm: failed to remove '" + target + "': " + e.getMessage());
+        }
+    }
+
+    // Helper method to delete a directory recursively
+    private static void deleteDirectoryRecursively(File directory) throws IOException {
+        File[] allContents = directory.listFiles();
+        if (allContents != null) {
+            for (File file : allContents) {
+                deleteDirectoryRecursively(file); // Recursively delete contents
+            }
+        }
+        if (directory.delete()) {
+            System.out.println("Removed directory: " + directory.getPath());
+        } else {
+            throw new IOException("Failed to delete directory: " + directory.getPath());
+        }
+    }
+
+    //cat-> read and print the file content
+    public static void cat(String currentDir, String fileName) {
+        try {
+            // Resolve the file path based on the current directory
+            Path filePath = Paths.get(currentDir, fileName).normalize();
+
+            // Check if the file exists and is readable
+            if (!Files.exists(filePath)) {
+                System.out.println("cat: " + fileName + ": No such file or directory");
+                return;
+            }
+            if (!Files.isRegularFile(filePath)) {
+                System.out.println("cat: " + fileName + ": Not a regular file");
+                return;
+            }
+
+            // Open and read the file line by line
+            try (BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                }
+            }
+
+        } catch (IOException e) {
+            System.out.println("cat: Error reading the file - " + e.getMessage());
+        }
+    }
 
     //>
 
     //>>
 
-    //|
+    //|-> pipe connects the output of one command to the input of another
 
     //exit
 
