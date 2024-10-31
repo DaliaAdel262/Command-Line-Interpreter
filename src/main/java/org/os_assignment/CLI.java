@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.nio.file.*;
 import java.io.BufferedReader;
@@ -58,6 +59,67 @@ public class CLI {
                     // if doesn't satisfy any condition, return invalid directory
                     return "Invalid directory";
                 }
+        }
+    }
+
+
+    // ls && ls -r
+    public static File[] listFiles(File currentPath) {
+        File[] files;
+        files = currentPath.listFiles(f -> !f.isHidden()); // List all files, including hidden
+        return files;
+    }
+
+    //ls -a
+    public static File[] listAllFiles(File currentPath) {
+        File[] files;
+        files = currentPath.listFiles(); // List all files, including hidden
+        return files;
+    }
+
+    // List files recursively and return an array of all files
+    public static File[] listFilesRecursively(File directory) {
+        List<File> fileList = new ArrayList<>();
+        accumulateFiles(directory, fileList);
+        return fileList.toArray(new File[0]);
+    }
+
+    // Helper method for recursion
+    private static void accumulateFiles(File directory, List<File> fileList) {
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                fileList.add(file);  // Add the file/directory to the list
+                if (file.isDirectory()) {
+                    accumulateFiles(file, fileList); // Recursively add files from subdirectory
+                }
+            }
+        }
+    }
+
+    // mkdir - create a new directory
+    public static void createDirectory(File currentPath , String directoryName)  {
+        File newDir = new File(currentPath, directoryName);
+        if (newDir.mkdir()) {
+            System.out.println("Directory created: " + newDir.getPath());
+        } else {
+            System.out.println("Failed to create directory: " + directoryName);
+        }
+    }
+
+
+    //rmdir - remove directory
+    public static void removeDirectory(File currentPath , String directoryName) {
+        File dirToDelete = new File(currentPath, directoryName);
+
+        if (dirToDelete.exists() && dirToDelete.isDirectory()) {
+            if (dirToDelete.delete()) {
+                System.out.println("Directory deleted: " + directoryName);
+            } else {
+                System.out.println("Failed to delete directory: " + directoryName);
+            }
+        } else {
+            System.out.println("Directory does not exist: " + directoryName);
         }
     }
 
