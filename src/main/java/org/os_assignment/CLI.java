@@ -98,12 +98,14 @@ public class CLI {
     }
 
     // mkdir - create a new directory
-    public static void createDirectory(File currentPath , String directoryName)  {
+    public static Boolean createDirectory(File currentPath , String directoryName)  {
         File newDir = new File(currentPath, directoryName);
         if (newDir.mkdir()) {
             System.out.println("Directory created: " + newDir.getPath());
+            return true;
         } else {
             System.out.println("Failed to create directory: " + directoryName);
+            return false;
         }
     }
 
