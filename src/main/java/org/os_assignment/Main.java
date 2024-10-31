@@ -1,6 +1,9 @@
 package org.os_assignment;
 import java.io.File;
 import java.util.Scanner;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Arrays;
 
 public class Main {
     public static void main(String[] args) {
@@ -9,25 +12,51 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         CLI cli = new CLI();
 
-
         // Accessing user's home directory as usually done in cmds
         String currentDir = System.getProperty("user.home");
         File userDir = new File(currentDir);
 
         while(true){
-
             System.out.print(currentDir + '>');
 
             // Splitting command into substrings (command and any arguments) and storing them in array
             String[] command = scanner.nextLine().split("\\s+");
 
-            //command = [ls,-a]
+            if (Arrays.asList(command).contains(">")) {
+                int index = Arrays.asList(command).indexOf(">");
+
+                String[] cmdBeforeRedirect = Arrays.copyOfRange(command, 0, index);
+                String outputFile = command[index + 1];
+
+                CLI.redirectOutputByRewriting(cmdBeforeRedirect, outputFile,currentDir);
+                continue;
+            }else if(Arrays.asList(command).contains(">>")) {
+                int index = Arrays.asList(command).indexOf(">>");
+
+                String[] cmdBeforeRedirect = Arrays.copyOfRange(command, 0, index);
+                String outputFile = command[index + 1];
+
+                CLI.redirectOutputByAppending(cmdBeforeRedirect, outputFile,currentDir);
+                continue;
+            }else if(Arrays.asList(command).contains("|")){
+                int index = Arrays.asList(command).indexOf("|");
+
+                String[] cmdBeforeRedirect = Arrays.copyOfRange(command, 0, index);
+                String[] cmdAfterRedirect = Arrays.copyOfRange(command, index+1, command.length-1);
+
+                CLI.pipe(cmdBeforeRedirect, cmdAfterRedirect, currentDir);
+                continue;
+            }
 
             switch(command[0]){
 
                 // help command - displays brief description for each command implemneted
                 case "help":
-                    CLI.displayHelp();
+                    Map<String,String> availableCommands = CLI.displayHelp();
+                    System.out.println("availableCommands");
+                    for (Map.Entry<String, String> entry : availableCommands.entrySet()) {
+                        System.out.println(entry.getKey() + " - " + entry.getValue());
+                    }
                     break;
 
                 // exit command - exits from terminal using built-in function
@@ -38,7 +67,7 @@ public class Main {
 
                 // pwd - calls pwd function
                 case "pwd":
-                    CLI.printWorkingDirectory(currentDir);
+                    System.out.println(CLI.printWorkingDirectory(currentDir));
                     break;
 
                 // cd - calls cd function and displays output depending on return from function

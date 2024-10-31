@@ -1,20 +1,23 @@
 package org.os_assignment;
-
-
 import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.nio.file.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 
 public class CLI {
 
-
     // pwd - printing working directory(current directory)
-    public static void printWorkingDirectory(String currentDir){
+    public static String printWorkingDirectory(String currentDir){
 
-        // print current directory using currentDir param passed from main
-        System.out.println(currentDir);
+        // return current directory using currentDir param passed from main
+        return currentDir;
+
     }
 
     //cd - change directory
@@ -34,9 +37,10 @@ public class CLI {
                     // if current directory is already parent directory, do nothing
                     return "";
                 }
-//            case ".":
+
             case "\\":
                 return currentPath.toPath().getRoot().toString();
+
             default:
                 File newDir;
                 if (new File(arg).isAbsolute()) {
@@ -51,7 +55,7 @@ public class CLI {
                     // if new dir exists and is a directory, return as a string
                     return newDir.getPath();
                 } else {
-                    // if satisfy any condition, return invalid directory
+                    // if doesn't satisfy any condition, return invalid directory
                     return "Invalid directory";
                 }
         }
@@ -107,6 +111,7 @@ public class CLI {
         }
     }
 
+    //rmdir
 
     //rm-> remove file or directory
     public static void rm(String currentDir, String targetPath) {
@@ -148,7 +153,7 @@ public class CLI {
     }
 
     //cat-> read and print the file content
-    public static void cat(String currentDir, String fileName) {
+    public static String cat(String currentDir, String fileName) {
         try {
             // Resolve the file path based on the current directory
             Path filePath = Paths.get(currentDir, fileName).normalize();
@@ -156,52 +161,192 @@ public class CLI {
             // Check if the file exists and is readable
             if (!Files.exists(filePath)) {
                 System.out.println("cat: " + fileName + ": No such file or directory");
-                return;
+                return ("cat: " + fileName + ": No such file or directory");
             }
             if (!Files.isRegularFile(filePath)) {
-                System.out.println("cat: " + fileName + ": Not a regular file");
-                return;
+                return ("cat: " + fileName + ": Not a regular file");
             }
 
             // Open and read the file line by line
             try (BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
+                    return line;
                 }
             }
 
         } catch (IOException e) {
-            System.out.println("cat: Error reading the file - " + e.getMessage());
+            return ("cat: Error reading the file - " + e.getMessage());
         }
+        return null;
     }
 
     //>
+    public static void redirectOutputByRewriting(String[] command,String fileToStoreOutput,String currentDir){
+        String output;
+        String err = "";
+        switch(command[0]){
+            case "pwd":
+                if(command.length>1){
+                    err = "This command is not supported by the pwd utility.";
+                }
+                // must return string
+                output = CLI.printWorkingDirectory(currentDir);
+                break;
+            case "help":
+                if(command.length>1){
+                    err = "This command is not supported by the help utility.";
+                }
+                // help must return string
+                Map<String, String> helpCommands = CLI.displayHelp();
+                output = helpCommands.toString();
+                break;
+            case "ls":
+            case "touch":
+            case "cat":
+            default:
+                // a command with no output, do nothing
+                return;
+        }
+
+        File file;
+        if (new File(fileToStoreOutput).isAbsolute()) {
+            file = new File(fileToStoreOutput);
+        } else {
+            file = new File(currentDir, fileToStoreOutput);
+        }
+
+        if(!err.isEmpty()){
+            try (FileWriter fw = new FileWriter(file, false);
+                 PrintWriter pw = new PrintWriter(fw)) {
+                pw.println(err);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else if(!output.isEmpty()){
+
+            try (FileWriter fw = new FileWriter(file, false);
+                 PrintWriter pw = new PrintWriter(fw)) {
+                pw.println(output);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     //>>
+    public static void redirectOutputByAppending(String[] command,String fileToStoreOutput,String currentDir){
+        String output;
+        String err = "";
+        switch(command[0]){
+            case "pwd":
+                if(command.length>1){
+                    err = "This command is not supported by the pwd utility.";
+                }
+                // must return string
+                output = CLI.printWorkingDirectory(currentDir);
+                break;
+            case "help":
+                if(command.length>1){
+                    err = "This command is not supported by the help utility.";
+                }
+                // help must return string
+                Map<String, String> helpCommands = CLI.displayHelp();
+                output = helpCommands.toString();
+                break;
+            case "ls":
+            case "touch":
+            case "cat":
+            default:
+                // a command with no output, do nothing
+                return;
+        }
+
+        File file;
+        if (new File(fileToStoreOutput).isAbsolute()) {
+            file = new File(fileToStoreOutput);
+        } else {
+            file = new File(currentDir, fileToStoreOutput);
+        }
 
     //|-> pipe connects the output of one command to the input of another
+        if(!err.isEmpty()){
+            try (FileWriter fw = new FileWriter(file, true);
+                 PrintWriter pw = new PrintWriter(fw)) {
+                pw.println(err);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else if(!output.isEmpty()){
+
+            try (FileWriter fw = new FileWriter(file, true);
+                 PrintWriter pw = new PrintWriter(fw)) {
+                pw.println(output);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    //|
+    public static void pipe(String[] command1, String[] command2, String currentDir){
+        String[] output = {};
+        String err = "";
+        switch(command1[0]){
+            case "ls":
+            case "ls -a":
+            case "ls -r":
+                System.out.println(":)");
+                break;
+            default:
+                System.out.println("Command not compatible with pipe: " + command1[0]);
+                return;
+        }
+        
+        if(output.length!=0 || output != null){
+            switch(command2[0]){
+
+                // cd - calls cd function and displays output depending on return from function
+                case "cat":
+                    for(int i=0;i<output.length;i++){
+                        CLI.cat(currentDir,output[i]);
+                    }
+                    break;
+
+                // default for any invalid command
+                default:
+                    System.out.println("Command not compatible with pipe: " + command2[0]);
+                    return;
+            }
+        }else{
+            System.out.println("No output to pipe from command: " + command1[0]);
+            return;
+        }
+    }
 
     //exit
 
     //help
-    public static void displayHelp(){
-        System.out.println("Available commands:");
-        System.out.println("cd [directory] - Change the current directory to the specified directory.");
-        System.out.println("pwd - Print the current working directory.");
-        System.out.println("ls - List files in the current directory.");
-        System.out.println("ls -a - List all files, including hidden files in the current directory.");
-        System.out.println("ls -r - List files in the current directory recursively.");
-        System.out.println("mkdir [directory] - Create a new directory with the specified name.");
-        System.out.println("rmdir [directory] - Remove the specified directory (must be empty).");
-        System.out.println("touch [file] - Create a new empty file with the specified name or update the timestamp of an existing file.");
-        System.out.println("mv [source] [destination] - Move or rename a file or directory from source to destination.");
-        System.out.println("rm [file] - Remove the specified file.");
-        System.out.println("cat [file] - Display the contents of the specified file.");
-        System.out.println("> [command] - Redirect output to a file, overwriting the file if it exists.");
-        System.out.println(">> [command] - Redirect output to a file, appending to the file if it exists.");
-        System.out.println("| [command] - Pipe output from one command to another command.");
-        System.out.println("exit - Exit the command-line interpreter.");
-        System.out.println("help - Display this help information.");
+    public static Map<String,String> displayHelp(){
+        Map<String, String> helpCommands = new HashMap<>();
+
+        helpCommands.put("cd [directory]", "Change the current directory to the specified directory.");
+        helpCommands.put("pwd", "Print the current working directory.");
+        helpCommands.put("ls", "List files in the current directory.");
+        helpCommands.put("ls -a", "List all files, including hidden files in the current directory.");
+        helpCommands.put("ls -r", "List files in the current directory recursively.");
+        helpCommands.put("mkdir [directory]", "Create a new directory with the specified name.");
+        helpCommands.put("rmdir [directory]", "Remove the specified directory (must be empty).");
+        helpCommands.put("touch [file]", "Create a new empty file with the specified name or update the timestamp of an existing file.");
+        helpCommands.put("mv [source] [destination]", "Move or rename a file or directory from source to destination.");
+        helpCommands.put("rm [file]", "Remove the specified file.");
+        helpCommands.put("cat [file]", "Display the contents of the specified file.");
+        helpCommands.put("> [command]", "Redirect output to a file, overwriting the file if it exists.");
+        helpCommands.put(">> [command]", "Redirect output to a file, appending to the file if it exists.");
+        helpCommands.put("| [command]", "Pipe output from one command to another command.");
+        helpCommands.put("exit", "Exit the command-line interpreter.");
+        helpCommands.put("help", "Display this help information.");
+
+        return helpCommands;
     }
 }
