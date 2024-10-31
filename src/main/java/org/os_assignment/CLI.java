@@ -1,67 +1,58 @@
 package org.os_assignment;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.PrintWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
 import java.nio.file.*;
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.util.stream.Collectors;
 
 public class CLI {
 
     // pwd - printing working directory(current directory)
     public static String printWorkingDirectory(String currentDir){
-
-        // return current directory using currentDir param passed from main
         return currentDir;
-
     }
 
     //cd - change directory
     public static String changeCurrentDirectory(String arg, File currentPath){
+        arg = arg.toLowerCase();
         switch(arg){
 
             // Moving up one directory, moving up to parent directory of current directory
             case "..":
-
-                // Getting parent directory using file
                 File parentDir = currentPath.getParentFile();
-
                 if(parentDir != null){
-                    // return string of the file parentDir
                     return parentDir.getPath();
                 }else{
-                    // if current directory is already parent directory, do nothing
                     return "";
                 }
 
             case "\\":
-                return currentPath.toPath().getRoot().toString();
+                try {
+                    return currentPath.toPath().getRoot().toFile().getCanonicalPath();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return "Error accessing root directory";
+                }
 
             default:
                 File newDir;
                 if (new File(arg).isAbsolute()) {
-                    // checking if path is absolute, set arg as new dir
                     newDir = new File(arg);
                 } else {
-                    // combine arg with current path and storing in new dir
                     newDir = new File(currentPath, arg);
                 }
 
                 if (newDir.exists() && newDir.isDirectory()) {
-                    // if new dir exists and is a directory, return as a string
-                    return newDir.getPath();
+                    try {
+                        return newDir.getCanonicalPath();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        return "Error accessing directory";
+                    }
                 } else {
-                    // if doesn't satisfy any condition, return invalid directory
                     return "Invalid directory";
                 }
         }
     }
-
 
     // ls && ls -r
     public static File[] listFiles(File currentPath) {
@@ -109,7 +100,6 @@ public class CLI {
         }
     }
 
-
     //rmdir - remove directory
     public static void removeDirectory(File currentPath , String directoryName) {
         File dirToDelete = new File(currentPath, directoryName);
@@ -124,7 +114,6 @@ public class CLI {
             System.out.println("Directory does not exist: " + directoryName);
         }
     }
-
 
     //touch-> creates new file or changes the timestamp
     public static void touch(String filename, File currentDir) {
@@ -153,7 +142,6 @@ public class CLI {
         }
     }
 
-
     //mv-> move or rename files
     public static void mv(String currentDir, String sourcePath, String destinationPath) {
         // Resolve source and destination paths relative to the current directory
@@ -174,8 +162,6 @@ public class CLI {
             System.out.println("mv: failed to move '" + source + "' to '" + destination + "': " + e.getMessage());
         }
     }
-
-    //rmdir
 
     //rm-> remove file or directory
     public static void rm(String currentDir, String targetPath) {
@@ -218,6 +204,8 @@ public class CLI {
 
     //cat-> read and print the file content
     public static String cat(String currentDir, String fileName) {
+        List<String> lines = new ArrayList<>();
+
         try {
             // Resolve the file path based on the current directory
             Path filePath = Paths.get(currentDir, fileName).normalize();
@@ -235,42 +223,91 @@ public class CLI {
             try (BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    return line;
+                    lines.add(line);
                 }
             }
 
         } catch (IOException e) {
             return ("cat: Error reading the file - " + e.getMessage());
         }
-        return null;
+        return String.join(System.lineSeparator(), lines);
     }
 
-    //>
-    public static void redirectOutputByRewriting(String[] command,String fileToStoreOutput,String currentDir){
-        String output;
+    //> & >>
+    public static void redirectOutput(String[] command, String fileToStoreOutput, String currentDir, String typeOfRedirection) {
+        StringBuilder output = new StringBuilder();
         String err = "";
-        switch(command[0]){
+
+        switch (command[0]) {
             case "pwd":
-                if(command.length>1){
+                if (command.length > 1) {
                     err = "This command is not supported by the pwd utility.";
+                } else {
+                    output.append(CLI.printWorkingDirectory(currentDir));
                 }
-                // must return string
-                output = CLI.printWorkingDirectory(currentDir);
                 break;
+
             case "help":
-                if(command.length>1){
+                if (command.length > 1) {
                     err = "This command is not supported by the help utility.";
+                } else {
+                    Map<String, String> helpCommands = CLI.displayHelp();
+                    helpCommands.forEach((cmd, desc) -> output.append(cmd).append(": ").append(desc).append("\n"));
                 }
-                // help must return string
-                Map<String, String> helpCommands = CLI.displayHelp();
-                output = helpCommands.toString();
                 break;
+
             case "ls":
-            case "touch":
+                File[] files;
+                if (command.length > 1) {
+                    if ("-r".equals(command[1])) {
+                        files = CLI.listFilesRecursively(new File(currentDir));
+                        if (files.length > 0) {
+                            for (File file : files) {
+                                output.append(file.getPath()).append("\n");
+                            }
+                        } else {
+                            output.append("Directory is empty\n");
+                        }
+                    } else if ("-a".equals(command[1])) {
+                        files = CLI.listAllFiles(new File(currentDir));
+                        if (files != null) {
+                            for (File file : files) {
+                                output.append(file.getPath()).append("\n");
+                            }
+                        } else {
+                            output.append("Directory is empty\n");
+                        }
+                    } else {
+                        err = command[1] + " is not recognized as an option for ls command.";
+                    }
+                } else {
+                    files = CLI.listFiles(new File(currentDir));
+                    if (files != null) {
+                        for (File file : files) {
+                            output.append(file.getPath()).append("\n");
+                        }
+                    } else {
+                        output.append("Directory is empty\n");
+                    }
+                }
+                break;
+
             case "cat":
+                if (command.length == 2) {
+                    String fileContent = CLI.cat(currentDir, command[1]);
+                    if (fileContent != null) {
+                        output.append(fileContent);
+                    } else {
+                        err = "File not found or could not be read.";
+                    }
+                } else {
+                    err = "Invalid usage. Usage: cat <file>";
+                }
+                break;
+
             default:
-                // a command with no output, do nothing
-                return;
+                err = "Command not recognized.";
+                break;
         }
 
         File file;
@@ -280,115 +317,111 @@ public class CLI {
             file = new File(currentDir, fileToStoreOutput);
         }
 
-        if(!err.isEmpty()){
-            try (FileWriter fw = new FileWriter(file, false);
-                 PrintWriter pw = new PrintWriter(fw)) {
+        try (FileWriter fw = new FileWriter(file, typeOfRedirection.equals(">") ? false: true);
+             PrintWriter pw = new PrintWriter(fw)) {
+            if (!err.isEmpty()) {
                 pw.println(err);
-            } catch (IOException e) {
-                e.printStackTrace();
+            } else if (output.length() > 0) {
+                pw.print(output);
             }
-        }else if(!output.isEmpty()){
-
-            try (FileWriter fw = new FileWriter(file, false);
-                 PrintWriter pw = new PrintWriter(fw)) {
-                pw.println(output);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    //>>
-    public static void redirectOutputByAppending(String[] command,String fileToStoreOutput,String currentDir){
-        String output;
-        String err = "";
-        switch(command[0]){
-            case "pwd":
-                if(command.length>1){
-                    err = "This command is not supported by the pwd utility.";
-                }
-                // must return string
-                output = CLI.printWorkingDirectory(currentDir);
-                break;
-            case "help":
-                if(command.length>1){
-                    err = "This command is not supported by the help utility.";
-                }
-                // help must return string
-                Map<String, String> helpCommands = CLI.displayHelp();
-                output = helpCommands.toString();
-                break;
-            case "ls":
-            case "touch":
-            case "cat":
-            default:
-                // a command with no output, do nothing
-                return;
-        }
-
-        File file;
-        if (new File(fileToStoreOutput).isAbsolute()) {
-            file = new File(fileToStoreOutput);
-        } else {
-            file = new File(currentDir, fileToStoreOutput);
-        }
-
-    //|-> pipe connects the output of one command to the input of another
-        if(!err.isEmpty()){
-            try (FileWriter fw = new FileWriter(file, true);
-                 PrintWriter pw = new PrintWriter(fw)) {
-                pw.println(err);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }else if(!output.isEmpty()){
-
-            try (FileWriter fw = new FileWriter(file, true);
-                 PrintWriter pw = new PrintWriter(fw)) {
-                pw.println(output);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
     //|
-    public static void pipe(String[] command1, String[] command2, String currentDir){
-        String[] output = {};
+    public static List<String> pipe(String[] command1, String[] command2, String currentDir) {
+        List<String> output = new ArrayList<>();
         String err = "";
-        switch(command1[0]){
+
+        switch (command1[0]) {
             case "ls":
-            case "ls -a":
-            case "ls -r":
-                System.out.println(":)");
+                File[] files;
+                if (command1.length > 1) {
+                    if ("-r".equals(command1[1])) {
+                        files = CLI.listFilesRecursively(new File(currentDir));
+                        if (files.length > 0) {
+                            for (File file : files) {
+                                output.add(file.getPath());
+                            }
+                        } else {
+                            output.add("Directory is empty");
+                        }
+                    } else if ("-a".equals(command1[1])) {
+                        files = CLI.listAllFiles(new File(currentDir));
+                        if (files != null) {
+                            for (File file : files) {
+                                output.add(file.getPath());
+                            }
+                        } else {
+                            output.add("Directory is empty");
+                        }
+                    } else {
+                        err = command1[1] + " is not recognized as an option for ls command.";
+                    }
+                } else {
+                    files = CLI.listFiles(new File(currentDir));
+                    if (files != null) {
+                        for (File file : files) {
+                            output.add(file.getPath());
+                        }
+                    } else {
+                        output.add("Directory is empty");
+                    }
+                }
+                break;
+            case "sort":
+                if (command1.length > 1) {
+                    String fileName = command1[1];
+                    List<String> sortedLines = CLI.sort(currentDir, fileName);
+                    if (sortedLines != null && !sortedLines.isEmpty()) {
+                        output.addAll(sortedLines); // Add sorted lines to output
+                    } else {
+                        err = "File not found or could not be sorted.";
+                    }
+                } else {
+                    err = "Invalid usage. Usage: sort <file>";
+                }
                 break;
             default:
-                System.out.println("Command not compatible with pipe: " + command1[0]);
-                return;
+                output.add("Command not compatible with pipe: " + command1[0]);
+                return output;
         }
-        
-        if(output.length!=0 || output != null){
-            switch(command2[0]){
 
-                // cd - calls cd function and displays output depending on return from function
+        if (!output.isEmpty()) {
+            switch (command2[0]) {
                 case "cat":
-                    for(int i=0;i<output.length;i++){
-                        CLI.cat(currentDir,output[i]);
+                    for (String line : output) {
+                        if (!line.isEmpty()) {
+                            CLI.cat(currentDir, line);
+                        }
                     }
                     break;
-
-                // default for any invalid command
+                case "uniq":
+                    List<String> uniqueLines = CLI.uniq(output);
+                    output.clear();
+                    output.addAll(uniqueLines);
+                    break;
+                case "grep":
+                    if (command2.length > 1) {
+                        String searchTerm = command2[1];
+                        List<String> grepResults = CLI.grep(output, searchTerm);
+                        output.clear();
+                        output.addAll(grepResults);
+                    } else {
+                        output.add("Usage: grep <search-term>");
+                    }
+                    break;
                 default:
-                    System.out.println("Command not compatible with pipe: " + command2[0]);
-                    return;
+                    output.add("Command not compatible with pipe: " + command2[0]);
+                    return output;
             }
-        }else{
-            System.out.println("No output to pipe from command: " + command1[0]);
-            return;
+        } else {
+            output.add("No output to pipe from command: " + command1[0]);
         }
-    }
 
-    //exit
+        return output;
+    }
 
     //help
     public static Map<String,String> displayHelp(){
@@ -412,5 +445,36 @@ public class CLI {
         helpCommands.put("help", "Display this help information.");
 
         return helpCommands;
+    }
+
+    // sort
+    public static List<String> sort(String currentDir, String fileName) {
+        List<String> lines = new ArrayList<>();
+        File file = new File(currentDir, fileName);
+
+        if (!file.exists() || !file.isFile()) {
+            return null;
+        }
+
+        try {
+            lines = Files.readAllLines(file.toPath());
+            Collections.sort(lines);
+            return lines;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    // grep
+    public static List<String> grep(List<String> lines, String searchTerm) {
+        return lines.stream()
+                .filter(line -> line.contains(searchTerm))
+                .collect(Collectors.toList());
+    }
+
+    // uniq
+    public static List<String> uniq(List<String> lines) {
+        return lines.stream().distinct().collect(Collectors.toList());
     }
 }

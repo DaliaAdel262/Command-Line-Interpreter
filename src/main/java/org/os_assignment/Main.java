@@ -22,29 +22,25 @@ public class Main {
             // Splitting command into substrings (command and any arguments) and storing them in array
             String[] command = scanner.nextLine().split("\\s+");
 
-            if (Arrays.asList(command).contains(">")) {
-                int index = Arrays.asList(command).indexOf(">");
+            if (Arrays.asList(command).contains(">") || Arrays.asList(command).contains(">>")) {
+                int index = Math.max(
+                        Arrays.asList(command).indexOf(">"),
+                        Arrays.asList(command).indexOf(">>")
+                );
 
                 String[] cmdBeforeRedirect = Arrays.copyOfRange(command, 0, index);
                 String outputFile = command[index + 1];
 
-                CLI.redirectOutputByRewriting(cmdBeforeRedirect, outputFile,currentDir);
+                CLI.redirectOutput(cmdBeforeRedirect, outputFile,currentDir,command[index]);
                 continue;
-            }else if(Arrays.asList(command).contains(">>")) {
-                int index = Arrays.asList(command).indexOf(">>");
-
-                String[] cmdBeforeRedirect = Arrays.copyOfRange(command, 0, index);
-                String outputFile = command[index + 1];
-
-                CLI.redirectOutputByAppending(cmdBeforeRedirect, outputFile,currentDir);
-                continue;
-            }else if(Arrays.asList(command).contains("|")){
+            } else if(Arrays.asList(command).contains("|")){
                 int index = Arrays.asList(command).indexOf("|");
+                System.out.println(index);
 
                 String[] cmdBeforeRedirect = Arrays.copyOfRange(command, 0, index);
-                String[] cmdAfterRedirect = Arrays.copyOfRange(command, index+1, command.length-1);
+                String[] cmdAfterRedirect = Arrays.copyOfRange(command, index+1, command.length);
 
-                CLI.pipe(cmdBeforeRedirect, cmdAfterRedirect, currentDir);
+                System.out.println(CLI.pipe(cmdBeforeRedirect, cmdAfterRedirect, currentDir));
                 continue;
             }
 
@@ -153,8 +149,6 @@ public class Main {
                     }
                     break;
 
-
-
                 case "touch":
                     if (command.length > 1) {
                         CLI.touch(command[1], userDir);
@@ -182,7 +176,7 @@ public class Main {
 
                 case "cat":
                     if (command.length == 2) {
-                        CLI.cat(currentDir, command[1]);
+                        System.out.println(CLI.cat(currentDir, command[1]));
                     } else {
                         System.out.println("Invalid usage. Usage: cat <file>");
                     }
